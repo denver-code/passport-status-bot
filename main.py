@@ -596,7 +596,7 @@ if __name__ == "__main__":
     scheduler.add_job(
         scheduler_job,
         "interval",
-        minutes=1,
+        hours=1,
     )
     scheduler.start()
     executor.start_polling(dp, loop=loop, skip_updates=True, on_startup=startup)
