@@ -1,11 +1,9 @@
-from ast import Subscript
-from email.mime import application
 from beanie import init_beanie
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 import asyncio
 from aiogram.utils import executor
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from requests import session
 from core.api import Scraper
@@ -18,6 +16,10 @@ bot = Bot(settings.TOKEN)
 dp = Dispatcher(bot, loop=asyncio.get_event_loop())
 
 scraper = Scraper()
+
+
+async def notify_subscribers():
+    pass
 
 
 async def startup(dp: Dispatcher):
@@ -385,6 +387,72 @@ _Keep in mind: ви можеше мати лише 5 активних підпи
         """,
         parse_mode="Markdown",
     )
+
+
+@dp.message_handler(commands=["update"])
+async def manual_application_update(message: types.Message):
+    _message = await message.answer("Зачекайте, будь ласка, триває отримання даних...")
+    await message.answer_chat_action("typing")
+
+    _user = await UserModel.find_one({"telgram_id": str(message.from_user.id)})
+
+    _application = await ApplicationModel.find_one(
+        {
+            "session_id": _user.session_id,
+        }
+    )
+    if not _user or not _application:
+        await _message.edit_text(
+            "Вашого ідентифікатора не знайдено, надішліть його, будь ласка використовуючи команду /link \nНаприклад /link 1006655"
+        )
+        return
+
+    if _application.last_update > datetime.now() - timedelta(minutes=20):
+        await _message.edit_text(
+            "Останнє оновлення було менше 20хв тому, спробуйте пізніше."
+        )
+        return
+
+    status = scraper.check(_application.session_id, retrive_all=True)
+
+    if not status:
+        await _message.edit_text(
+            "Виникла помилка перевірки ідентифікатора, можливо дані некоректні чи ще не внесені в базу, спробуйте пізніше."
+        )
+        return
+
+    _statuses = []
+    for s in status:
+        _statuses.append(
+            StatusModel(
+                status=s.get("status"),
+                date=s.get("date"),
+            )
+        )
+    if len(_statuses) > len(_application.statuses):
+        # find new statuses
+        new_statuses = _statuses[len(_application.statuses) :]
+        # notify subscribers
+        await notify_subscribers()
+
+        _msg_text = f"""
+        Ми помітили зміну статусу заявки *#{_user.session_id}:*
+        """
+
+        for i, s in enumerate(new_statuses):
+            _date = datetime.fromtimestamp(int(s.date) / 1000).strftime(
+                "%Y-%m-%d %H:%M"
+            )
+            _msg_text += f"{i+1}. *{s.status}* \n_{_date}_\n\n"
+
+        await _message.edit_text(_msg_text, parse_mode="Markdown")
+    else:
+        await _message.edit_text("Статуси не змінилися.")
+
+    _application.statuses = _statuses
+    _application.last_update = datetime.now()
+
+    await _application.save()
 
 
 if __name__ == "__main__":
