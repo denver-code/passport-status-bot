@@ -1,0 +1,22 @@
+version: '3'
+services:
+  mfa_passport_bot:
+    depends_on:
+      - mongodb
+    build: .
+    volumes:
+      - .:/mfa_passport_bot
+    environment:
+      - TZ=Europe/London
+
+  mongodb:
+    image: mongo:6-jammy
+    ports:
+      - '27003:27017'
+    volumes:
+      - dbdata1:/data/db
+    restart: on-failure
+
+
+volumes:
+  dbdata1:

@@ -347,6 +347,30 @@ async def subscribe(message: types.Message):
     )
     await _subscription.insert()
 
+    _application = await ApplicationModel.find_one({"session_id": session_id})
+    if not _application:
+        # create application
+        status = scraper.check(session_id, retrive_all=True)
+        if not status:
+            await _message.edit_text(
+                "Виникла помилка перевірки ідентифікатора, можливо дані некоректні чи ще не внесені в базу, спробуйте пізніше."
+            )
+            return
+
+        _statuses = []
+        for s in status:
+            _statuses.append(
+                StatusModel(
+                    status=s.get("status"),
+                    date=s.get("date"),
+                )
+            )
+        _application = ApplicationModel(
+            session_id=session_id,
+            statuses=_statuses,
+            last_update=datetime.now(),
+        )
+        await _application.insert()
     await _message.edit_text(
         f"""
 Ви успішно підписані на сповіщення про зміну статусу заявки
