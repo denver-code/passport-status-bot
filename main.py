@@ -1,25 +1,68 @@
+from calendar import c
+import secrets
 from beanie import init_beanie
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 import asyncio
 from aiogram.utils import executor
 from datetime import datetime, timedelta
-
-from requests import session
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from core.api import Scraper
 from core.config import settings
 from core.database import db
 from core.models.application import ApplicationModel, StatusModel
 from core.models.user import SubscriptionModel, UserModel
+from core.models.push import PushModel
+from push_ntfy import notify_user, send_push
 
-bot = Bot(settings.TOKEN)
+loop = asyncio.get_event_loop()
+scheduler = AsyncIOScheduler()
+bot = Bot(settings.TOKEN, loop=loop)
 dp = Dispatcher(bot, loop=asyncio.get_event_loop())
 
 scraper = Scraper()
 
 
-async def notify_subscribers():
-    pass
+async def notify_subscribers(
+    target_application: ApplicationModel = None, new_statuses: list[StatusModel] = None
+):
+    if target_application:
+        _subscriptions = await SubscriptionModel.find(
+            {"session_id": target_application.session_id}
+        ).to_list()
+    else:
+        _subscriptions = await SubscriptionModel.find({}).to_list()
+
+    if not _subscriptions:
+        return
+
+    _msg_text = f"""
+    Ми помітили зміну статусу заявки *#{target_application.session_id}:*
+    """
+
+    for i, s in enumerate(new_statuses):
+        _date = datetime.fromtimestamp(int(s.date) / 1000).strftime("%Y-%m-%d %H:%M")
+        _msg_text += f"{i+1}. *{s.status}* \n_{_date}_\n\n"
+
+    for _subscription in _subscriptions:
+        _push_subscription = await PushModel.find_one(
+            {"telgram_id": _subscription.telgram_id}
+        )
+        if _push_subscription:
+            _message = f""
+            for status in new_statuses:
+                _message += f"{status.status}\n"
+            send_push(
+                f"MFA_{_subscription.telgram_id}_{_push_subscription.secret_id}",
+                f"Оновлення заявки #{target_application.session_id}",
+                _message,
+            )
+
+        await bot.send_message(
+            _subscription.telgram_id,
+            _msg_text,
+            parse_mode="Markdown",
+        )
 
 
 async def startup(dp: Dispatcher):
@@ -41,6 +84,10 @@ async def startup(dp: Dispatcher):
             command="/unsubscribe", description="Відписатися від сповіщень"
         ),
         types.BotCommand(command="/subscriptions", description="Список підписок"),
+        types.BotCommand(command="/update", description="Оновити статус заявки вручну"),
+        types.BotCommand(
+            command="/push", description="Підписатися на сповіщення через NTFY.sh"
+        ),
     ]
 
     await bot.set_my_commands(commands)
@@ -50,6 +97,7 @@ async def startup(dp: Dispatcher):
             UserModel,
             SubscriptionModel,
             ApplicationModel,
+            PushModel,
         ],
     )
 
@@ -378,12 +426,14 @@ async def help(message: types.Message):
 /cabinet - персональний кабінет
 /link <session ID> - прив'язати ідентифікатор
 /unlink або /delete - відв'язати ідентифікатор та видалити профіль
+/update - оновити статус заявки вручну
 
 *Сповіщення:*
 _Keep in mind: ви можеше мати лише 5 активних підписок_
 /subscribe <session ID> - підписатися на сповіщення
 /unsubscribe <session ID> - відписатися від сповіщень
 /subscriptions - список підписок
+/push - підписатися на сповіщення через NTFY.sh
         """,
         parse_mode="Markdown",
     )
@@ -455,5 +505,74 @@ async def manual_application_update(message: types.Message):
     await _application.save()
 
 
+async def scheduler_job():
+    _applications = await ApplicationModel.find({}).to_list()
+
+    for application in _applications:
+        status = scraper.check(application.session_id, retrive_all=True)
+
+        if not status:
+            continue
+
+        _statuses = []
+        for s in status:
+            _statuses.append(
+                StatusModel(
+                    status=s.get("status"),
+                    date=s.get("date"),
+                )
+            )
+        if len(_statuses) > len(application.statuses):
+            # find new statuses
+            new_statuses = _statuses[len(application.statuses) :]
+            # notify subscribers
+            await notify_subscribers(
+                target_application=application, new_statuses=new_statuses
+            )
+
+        application.statuses = _statuses
+        application.last_update = datetime.now()
+
+        await application.save()
+
+
+@dp.message_handler(commands=["push"])
+async def enable_push(message: types.Message):
+    _push = await PushModel.find_one({"telgram_id": str(message.from_user.id)})
+    if _push:
+        await message.answer(
+            f"Ви вже підписані на сповіщення про зміну статусу заявки.\nTopic: `MFA_{message.from_id}_{_push.secret_id}`",
+            parse_mode="Markdown",
+        )
+
+        return
+
+    # generate random secret id for push - lenght 32
+    _secret_id = secrets.token_hex(16)
+
+    _push = PushModel(
+        telgram_id=str(message.from_user.id),
+        secret_id=_secret_id,
+    )
+    await _push.insert()
+
+    await message.answer(
+        f"""
+Ви успішно підписані на сповіщення про зміну статусу заявки
+Ваш секретний ідентифікатор: {_secret_id}
+
+Щоб підписатиня на сповіщення, додайте наступний топік до NTFY.sh:
+`MFA_{message.from_id}_{_secret_id}`
+        """,
+        parse_mode="Markdown",
+    )
+
+
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True, on_startup=startup)
+    scheduler.add_job(
+        scheduler_job,
+        "interval",
+        minutes=1,
+    )
+    scheduler.start()
+    executor.start_polling(dp, loop=loop, skip_updates=True, on_startup=startup)

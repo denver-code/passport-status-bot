@@ -1,1 +1,4 @@
-coming soon...
+# Bot
+
+## ToDo
+- [ ] refactor code + better structure
