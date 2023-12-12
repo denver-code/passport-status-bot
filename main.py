@@ -1,8 +1,5 @@
-import os
 from time import sleep
 import asyncio
-
-from dotenv import load_dotenv
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
@@ -14,12 +11,9 @@ from aiogram.types import (
 )
 from datetime import datetime
 from core.api import Scraper
+from core.config import settings
 
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
-
-bot = Bot(TOKEN)
+bot = Bot(settings.TOKEN)
 dp = Dispatcher(bot, loop=asyncio.get_event_loop())
 
 scraper = Scraper()
@@ -91,13 +85,13 @@ async def custom_check(message: types.Message):
     await _message.edit_text(_msg_text, parse_mode="Markdown")
 
 
-@dp.message_handler(commands=["cabinet"])
-async def cabinet(message: types.Message):
-    await message.answer(
-        """
-        *Ваш кабінет:*
-        """
-    )
+# @dp.message_handler(commands=["cabinet"])
+# async def cabinet(message: types.Message):
+#     await message.answer(
+#         """
+#         *Ваш кабінет:*
+#         """
+#     )
 
 
 if __name__ == "__main__":
