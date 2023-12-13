@@ -37,7 +37,7 @@ RUN poetry config installer.max-workers 10
 
 # Install Dependencies
 RUN apt-get update && apt-get install -y build-essential libzbar-dev ffmpeg libsm6 libxext6 libgl1 \
-    && poetry install --no-interaction --no-cache --without -vvv --no-ansi dev 
+    && poetry install --no-interaction --no-cache --without dev -vvv --no-ansi
 
 # Copy Application
 COPY . /app
