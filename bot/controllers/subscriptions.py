@@ -15,66 +15,64 @@ async def subscribe(message: types.Message):
     await message.answer_chat_action("typing")
 
     parts = message.text.split(" ")
-    if len(parts) != 2:
+    if len(parts) <= 1:
         await _message.edit_text(
             "Надішліть ваш ідентифікатор, будь ласка використовуючи команду /subscribe \nНаприклад /subscribe 1006655"
         )
         return
 
-    session_id = parts[1]
+    session_ids = parts[1:]
 
-    _subscription = await SubscriptionModel.find_one(
-        {"telgram_id": str(message.from_user.id), "session_id": session_id}
-    )
-    if _subscription:
-        await _message.edit_text(
-            "Ви вже підписані на сповіщення про зміну статусу заявки"
+    for session_id in session_ids:
+        _message = await _message.edit_text(
+            f"Зачекайте, будь ласка, триває оформлення підписки #{session_id}..."
         )
-        return
-
-    _count_subscriptions = await SubscriptionModel.find_all(
-        {"telgram_id": str(message.from_user.id)}
-    ).count()
-    if _count_subscriptions >= 5:
-        await _message.edit_text(
-            "Ви досягли максимальної кількості підписок на сповіщення про зміну статусу заявки"
+        _subscription = await SubscriptionModel.find_one(
+            {"telgram_id": str(message.from_user.id), "session_id": session_id}
         )
-        return
+        if _subscription:
+            continue
 
-    _subscription = SubscriptionModel(
-        telgram_id=str(message.from_user.id),
-        session_id=session_id,
-    )
-    await _subscription.insert()
+        _count_subscriptions = await SubscriptionModel.find_all(
+            {"telgram_id": str(message.from_user.id)}
+        ).count()
 
-    _application = await ApplicationModel.find_one({"session_id": session_id})
-    if not _application:
-        scraper = Scraper()
-        # create application
-        status = scraper.check(session_id, retrive_all=True)
-        if not status:
+        if _count_subscriptions > 5:
             await _message.edit_text(
-                "Виникла помилка перевірки ідентифікатора, можливо дані некоректні чи ще не внесені в базу, спробуйте пізніше."
+                "Ви досягли максимальної кількості підписок на сповіщення про зміну статусу заявки"
             )
             return
 
-        _statuses = []
-        for s in status:
-            _statuses.append(
-                StatusModel(
-                    status=s.get("status"),
-                    date=s.get("date"),
+        _application = await ApplicationModel.find_one({"session_id": session_id})
+        if not _application:
+            scraper = Scraper()
+            # create application
+            status = scraper.check(session_id, retrive_all=True)
+            if not status:
+                continue
+
+            _statuses = []
+            for s in status:
+                _statuses.append(
+                    StatusModel(
+                        status=s.get("status"),
+                        date=s.get("date"),
+                    )
                 )
+            _application = ApplicationModel(
+                session_id=session_id,
+                statuses=_statuses,
+                last_update=datetime.now(),
             )
-        _application = ApplicationModel(
+            await _application.insert()
+
+        _subscription = SubscriptionModel(
+            telgram_id=str(message.from_user.id),
             session_id=session_id,
-            statuses=_statuses,
-            last_update=datetime.now(),
         )
-        await _application.insert()
-    await _message.edit_text(
-        "Ви успішно підписані на сповіщення про зміну статусу заявки"
-    )
+        await _subscription.insert()
+
+    await _message.edit_text("Ви успішно підписані на сповіщення про зміну статусу")
 
 
 async def unsubscribe(message: types.Message):
@@ -234,3 +232,58 @@ async def enable_push(message: types.Message):
         ),
         parse_mode="Markdown",
     )
+
+
+async def dump_subscriptions(message: types.Message):
+    _subscriptions = await SubscriptionModel.find(
+        {"telgram_id": str(message.from_user.id)}
+    ).to_list()
+
+    if not _subscriptions:
+        await message.answer("Ви не підписані на сповіщення про зміну статусу заявки")
+        return
+
+    _msg_text = dedent(
+        f"""
+            *Ваші підписки:*
+        """
+    )
+
+    for i, s in enumerate(_subscriptions):
+        _msg_text += f"{i+1}. *{s.session_id}* \n"
+
+    _msg_text += dedent(
+        f"""
+            Всього: {len(_subscriptions)}
+        """
+    )
+
+    _message = await message.answer(_msg_text, parse_mode="Markdown")
+
+    applications = await ApplicationModel.find(
+        {"session_id": {"$in": [s.session_id for s in _subscriptions]}}
+    ).to_list()
+
+    _msg_text = dedent(
+        f"""
+            *Заявки:*
+        """
+    )
+
+    for i, s in enumerate(_subscriptions):
+        _msg_text += f"\n📑*{s.session_id}* \n"
+        # add statuses
+        _application = next(
+            filter(lambda a: a.session_id == s.session_id, applications), None
+        )
+        if not _application:
+            continue
+        for j, st in enumerate(_application.statuses):
+            _date = datetime.fromtimestamp(int(st.date) / 1000).strftime(
+                "%Y-%m-%d %H:%M"
+            )
+            _msg_text += f"     *{st.status}* \n          _{_date}_\n"
+
+    _msg_text += dedent(f"\nВсього: {len(_subscriptions)}")
+
+    await _message.edit_text(_msg_text, parse_mode="Markdown")

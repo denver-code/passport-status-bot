@@ -6,6 +6,7 @@ from bot.controllers.subscriptions import (
     subscriptions,
     manual_application_update,
     enable_push,
+    dump_subscriptions,
 )
 
 
@@ -17,3 +18,4 @@ def setup(dp: Dispatcher):
         manual_application_update, commands=["update"], state="*"
     )
     dp.register_message_handler(enable_push, commands=["push"], state="*")
+    dp.register_message_handler(dump_subscriptions, commands=["dump"], state="*")
