@@ -63,6 +63,12 @@ async def startup(dp: Dispatcher):
         types.BotCommand(
             command="/push", description="Підписатися на сповіщення через NTFY.sh"
         ),
+        types.BotCommand(
+            command="/dump",
+            description="Отримати весь дамп доступних даних на ваші підписки",
+        ),
+        types.BotCommand(command="/ping", description="Перевірити чи працює бот"),
+        types.BotCommand(command="/time", description="Поточний час сервера"),
     ]
 
     await bot.set_my_commands(commands)
