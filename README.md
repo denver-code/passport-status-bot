@@ -50,7 +50,7 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
 - [x] Readme.md
 - [x] QR-code scanner
 - [ ] Analytics
-- [ ] Rate limit
+- [x] Rate limit
 - [ ] Inline buttons
 - [ ] Improved structure
   - [ ] Middlewares
