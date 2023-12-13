@@ -5,7 +5,7 @@
    Telegram bot with useful tools for the community | Click to visit in real time.
 </p>
 
-## Actual Demo  
+## Actual Demo (NOT!)
 > [Note] Click on image.  
 
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=vtffijuUg5Y" target="_blank"><img src="http://img.youtube.com/vi/vtffijuUg5Y/0.jpg" 
