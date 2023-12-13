@@ -14,6 +14,8 @@ fake-headers = "^1.0.2"
 cloudscraper = "^1.2.71"
 aiogram = "2.23.1"
 apscheduler = "^3.10.4"
+pillow = "^10.1.0"
+qreader = "^3.12"
 
 
 [build-system]

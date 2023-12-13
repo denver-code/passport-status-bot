@@ -48,10 +48,16 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
 - [x] Refactoring
 - [x] Docker-compose
 - [x] Readme.md
-- [ ] QR-code scanner
+- [x] QR-code scanner
 - [ ] Analytics
 - [ ] Rate limit
 - [ ] Inline buttons
+
+## Changelog
+### 0.1.0
+- Added QR-code scanner:
+
+![QR-code scanner](assets/qr_scanner.gif)
 
 ## Installation
 ### Clone Repo
