@@ -2,7 +2,7 @@ import datetime
 
 from beanie import init_beanie
 
-from aiogram import Bot, types
+from aiogram import types
 from aiogram.dispatcher import Dispatcher
 
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -11,7 +11,7 @@ import asyncio
 from aiogram.utils import executor
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from bot.bot_instance import bot, loop
+from bot.bot_instance import bot, loop, version as bot_version, link, codename
 
 from bot.core.database import db
 
@@ -25,14 +25,6 @@ from bot.middlewares.antiflood import ThrottlingMiddleware, rate_limit
 
 
 scheduler = AsyncIOScheduler()
-
-# storage = RedisStorage2(db=2)
-
-# storage = RedisStorage2(
-#     host="redis:/localhost",
-#     port=6379,
-#     db=7,
-# )
 
 dp = Dispatcher(
     bot,
@@ -69,6 +61,7 @@ async def startup(dp: Dispatcher):
         ),
         types.BotCommand(command="/ping", description="Перевірити чи працює бот"),
         types.BotCommand(command="/time", description="Поточний час сервера"),
+        types.BotCommand(command="/version", description="Версія бота"),
     ]
 
     await bot.set_my_commands(commands)
@@ -92,6 +85,14 @@ async def ping(message: types.Message):
 @dp.message_handler(commands=["time"])
 async def time(message: types.Message):
     await message.answer(f"Server time is: {str(datetime.datetime.now())}")
+
+
+@dp.message_handler(commands=["version"])
+async def version(message: types.Message):
+    await message.answer(
+        f"Bot version:\n*v{bot_version}*\n\nSource Code:\n[denver-code/passport-status-bot/{link.split('/')[-1]}]({link})\n\nCodename:\n*{codename}*",
+        parse_mode="Markdown",
+    )
 
 
 def main():
