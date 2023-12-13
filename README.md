@@ -56,6 +56,14 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
   - [ ] Middlewares
 
 ## Changelog
+### 0.1.1
+- Added rate limit
+- Added subscription on many applications via 1 command
+![Subscriptions](assets/many_subs.gif)
+
+- New `/dump` command which dumps all data from DB about subscriptions and applications
+![Dump](assets/dump.gif)
+
 ### 0.1.0
 - Added QR-code scanner:
 
