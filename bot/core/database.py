@@ -1,5 +1,5 @@
 import motor.motor_asyncio
-from core.config import settings
+from bot.core.config import settings
 
 client = motor.motor_asyncio.AsyncIOMotorClient(
     settings.DATABASE_URL, uuidRepresentation="standard"
