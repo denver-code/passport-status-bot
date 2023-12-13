@@ -41,4 +41,4 @@ RUN poetry install
 COPY . /app
 
 # Run Application
-CMD [ "poetry", "run", "python3", "main.py"]
+CMD [ "poetry", "run", "python3", "-m", "bot"]

@@ -45,7 +45,7 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
 - [x] Підписка на зміни статусу заявки
 - [x] Підписка на зміни статусу заявки через кабінет
 - [x] Push-повідомлення про зміну статусу заявки
-- [ ] Refactoring
+- [x] Refactoring
 - [x] Docker-compose
 - [x] Readme.md
 - [ ] QR-code scanner
