@@ -53,10 +53,6 @@ async def image_qr_recognition(message: types.Message):
 
     decoded_code = decoded[0]
 
-    if len(decoded_code) != 7:
-        await _message.edit_text("Схоже на те, що це некоректний QR-код.")
-        return
-
     _message = await _message.edit_text(
         "Зачекайте, будь ласка, триває перевірка коду..."
     )

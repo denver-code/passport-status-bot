@@ -57,11 +57,6 @@ async def link(message: types.Message):
         return
 
     session_id = parts[1]
-    if not session_id.isdigit() or len(session_id) != 7:
-        await _message.edit_text(
-            "Ідентифікатор повинен містити лише цифри, спробуйте ще раз."
-        )
-        return
 
     scraper = Scraper()
     status = scraper.check(session_id, retrive_all=True)
