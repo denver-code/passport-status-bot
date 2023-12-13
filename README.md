@@ -36,7 +36,6 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
 
 - Повний перелік команд бота:
 
-
 <img src="assets/pic5.png" alt="drawing" width="200" />  
 
 ## ToDo
