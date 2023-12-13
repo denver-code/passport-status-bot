@@ -34,8 +34,9 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry check
 
 # Install Dependencies
-RUN poetry install 
-# --no-interaction --no-cache --without dev
+RUN apt-get update && apt-get install -y libzbar-dev \
+    && poetry install --no-interaction --no-cache --without dev \
+    && pip install pyzbar
 
 # Copy Application
 COPY . /app
