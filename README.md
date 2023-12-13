@@ -52,6 +52,8 @@ alt="vtffijuUg5Y" width="240" height="180" border="10" /></a>
 - [ ] Analytics
 - [ ] Rate limit
 - [ ] Inline buttons
+- [ ] Improved structure
+  - [ ] Middlewares
 
 ## Changelog
 ### 0.1.0

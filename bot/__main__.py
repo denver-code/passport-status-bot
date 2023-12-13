@@ -5,6 +5,8 @@ from beanie import init_beanie
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
 import asyncio
 from aiogram.utils import executor
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -19,11 +21,24 @@ from bot.core.models.user import SubscriptionModel, UserModel
 from bot.core.scheduler import scheduler_job
 
 from bot.handlers import setup as handlers_setup
+from bot.middlewares.antiflood import ThrottlingMiddleware, rate_limit
 
 
 scheduler = AsyncIOScheduler()
 
-dp = Dispatcher(bot, loop=asyncio.get_event_loop())
+# storage = RedisStorage2(db=2)
+
+# storage = RedisStorage2(
+#     host="redis:/localhost",
+#     port=6379,
+#     db=7,
+# )
+
+dp = Dispatcher(
+    bot,
+    loop=loop,
+    storage=MemoryStorage(),
+)
 
 
 async def startup(dp: Dispatcher):
@@ -63,6 +78,7 @@ async def startup(dp: Dispatcher):
 
 
 @dp.message_handler(commands=["ping"])
+@rate_limit(5, "ping")
 async def ping(message: types.Message):
     await message.answer("Pong!")
 
@@ -73,6 +89,7 @@ async def time(message: types.Message):
 
 
 def main():
+    dp.middleware.setup(ThrottlingMiddleware())
     scheduler.add_job(
         scheduler_job,
         "interval",
