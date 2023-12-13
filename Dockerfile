@@ -33,9 +33,11 @@ COPY poetry.lock pyproject.toml ./
 # [OPTIONAL] Validate the project is properly configured
 RUN poetry check
 
+RUN poetry config installer.max-workers 10
+
 # Install Dependencies
 RUN apt-get update && apt-get install -y build-essential libzbar-dev ffmpeg libsm6 libxext6 libgl1 \
-    && poetry install --no-interaction --no-cache --without dev
+    && poetry install --no-interaction --no-cache --without -vvv --no-ansi dev 
 
 # Copy Application
 COPY . /app
