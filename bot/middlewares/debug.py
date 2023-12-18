@@ -15,8 +15,8 @@ class LoggerMiddleware(BaseMiddleware):
         :param message:
 
         """
-        with open("out.txt", "w") as f:
+        with open("out.txt", "a") as f:
             print(
-                f"Прийшло повідомлення від {message.from_user.id} з текстом: {message}",
+                f"\nПрийшло повідомлення від {message.from_user.id} з текстом: {message}",
                 file=f,
             )

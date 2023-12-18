@@ -24,6 +24,7 @@ from bot.handlers import setup as handlers_setup
 from bot.middlewares.antiflood import ThrottlingMiddleware, rate_limit
 from bot.middlewares.debug import LoggerMiddleware
 
+from bot.core.config import settings
 
 scheduler = AsyncIOScheduler()
 
@@ -94,6 +95,32 @@ async def version(message: types.Message):
         f"Bot version:\n*v{bot_version}*\n\nSource Code:\n[denver-code/passport-status-bot/{link.split('/')[-1]}]({link})\n\nCodename:\n*{codename}*",
         parse_mode="Markdown",
     )
+
+
+@dp.message_handler(commands=["broadcast"])
+async def broadcast(message: types.Message):
+    if str(message.from_user.id) != str(settings.ADMIN_ID):
+        await message.answer("You are not admin!")
+        return
+    excepted_users = message.text.split(" ")
+    users = await UserModel.all().to_list()
+    print(users)
+    for user in users:
+        try:
+            if (
+                str(user.telgram_id) == settings.ADMIN_ID
+                or str(user.telgram_id) in excepted_users
+            ):
+                continue
+            if message.reply_to_message:
+                await bot.copy_message(
+                    user.telgram_id,
+                    message.chat.id,
+                    message.reply_to_message.message_id,
+                )
+        except Exception:
+            with open("out_blocked.txt", "a") as f:
+                print(f"User {user.telgram_id} blocked bot", file=f)
 
 
 def main():
