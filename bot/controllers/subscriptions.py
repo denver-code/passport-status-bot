@@ -37,7 +37,7 @@ async def subscribe(message: types.Message):
             {"telgram_id": str(message.from_user.id)}
         ).count()
 
-        if _count_subscriptions > 5:
+        if _count_subscriptions > 7:
             await _message.edit_text(
                 "Ви досягли максимальної кількості підписок на сповіщення про зміну статусу заявки"
             )

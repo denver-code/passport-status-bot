@@ -69,7 +69,7 @@ async def help(message: types.Message):
             /dump - отримати весь дамп доступних даних на ваші підписки
 
             *Сповіщення:*
-            _Keep in mind: ви можеше мати лише 5 активних підписок_
+            _Keep in mind: ви можеше мати лише 7 активних підписок_
             /subscribe <session ID> - підписатися на сповіщення
             /unsubscribe <session ID> - відписатися від сповіщень
             /subscriptions - список підписок
