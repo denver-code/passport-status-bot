@@ -22,6 +22,7 @@ from bot.core.scheduler import scheduler_job
 
 from bot.handlers import setup as handlers_setup
 from bot.middlewares.antiflood import ThrottlingMiddleware, rate_limit
+from bot.middlewares.debug import LoggerMiddleware
 
 
 scheduler = AsyncIOScheduler()
@@ -96,6 +97,7 @@ async def version(message: types.Message):
 
 
 def main():
+    dp.middleware.setup(LoggerMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
     scheduler.add_job(
         scheduler_job,
