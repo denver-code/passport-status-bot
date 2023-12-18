@@ -123,6 +123,15 @@ async def broadcast(message: types.Message):
                 print(f"User {user.telgram_id} blocked bot", file=f)
 
 
+@dp.message_handler(commands=["get_out_txt"])
+async def get_out_txt(message: types.Message):
+    if str(message.from_user.id) != str(settings.ADMIN_ID):
+        await message.answer("You are not admin!")
+        return
+    with open("out.txt", "r") as f:
+        await message.answer_document(f)
+
+
 def main():
     dp.middleware.setup(LoggerMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
