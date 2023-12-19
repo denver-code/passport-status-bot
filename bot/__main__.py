@@ -133,7 +133,7 @@ async def get_out_txt(message: types.Message):
 
 
 def main():
-    dp.middleware.setup(LoggerMiddleware())
+    # dp.middleware.setup(LoggerMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
     scheduler.add_job(
         scheduler_job,
