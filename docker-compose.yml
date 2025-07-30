@@ -8,15 +8,22 @@ services:
       - .:/mfa_passport_bot
     environment:
       - TZ=Europe/London
+    networks:
+      - mfa_passport_bot_net
 
   mongodb:
-    image: mongo:6-jammy
+    image: mongo:4.4
     ports:
       - '27003:27017'
     volumes:
       - dbdata1:/data/db
     restart: on-failure
-
+    networks:
+      - mfa_passport_bot_net
 
 volumes:
   dbdata1:
+
+networks:
+  mfa_passport_bot_net:
+    driver: bridge

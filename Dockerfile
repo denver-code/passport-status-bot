@@ -1,46 +1,52 @@
-FROM python:3.11 as python-base
+FROM python:3.12 AS python-base
 
-# https://python-poetry.org/docs#ci-recommendations
-ENV POETRY_VERSION=1.4.2
+ENV POETRY_VERSION=2.1.0
 ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VENV=/opt/poetry-venv
-
-# Tell Poetry where to place its cache and virtual environment
 ENV POETRY_CACHE_DIR=/opt/.cache
+ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
-# Create stage for Poetry installation
-FROM python-base as poetry-base
-
-# Creating a virtual environment just for poetry and install it with pip
+# Poetry install stage
+FROM python-base AS poetry-base
 RUN python3 -m venv $POETRY_VENV \
     && $POETRY_VENV/bin/pip install -U pip setuptools \
     && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
 
-# Create a new stage from the base python image
-FROM python-base as mfa_passport_bot
+# Final image
+FROM python-base
 
-# Copy Poetry to app image
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    build-essential libzbar-dev ffmpeg libsm6 libxext6 libgl1 fonts-unifont && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy poetry venv from poetry-base
 COPY --from=poetry-base ${POETRY_VENV} ${POETRY_VENV}
 
-# Add Poetry to PATH
-ENV PATH="${PATH}:${POETRY_VENV}/bin"
-
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy Dependencies
-COPY poetry.lock pyproject.toml ./
+# Copy dependency files first to cache dependencies
+COPY pyproject.toml README.md ./
+
+# Lock dependencies
+RUN poetry lock
 
 # [OPTIONAL] Validate the project is properly configured
 RUN poetry check
 
-RUN poetry config installer.max-workers 10
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi --no-root --without dev
 
-# Install Dependencies
-RUN apt-get update && apt-get install -y build-essential libzbar-dev ffmpeg libsm6 libxext6 libgl1 \
-    && poetry install --no-interaction --no-cache --without dev -vvv --no-ansi
+# Install Playwright and browsers
+RUN poetry run pip install --no-cache-dir playwright \
+    && poetry run playwright install chromium
 
-# Copy Application
-COPY . /app
+# Install new version of cloudscraper from GitHub because it's not in the PyPI
+RUN poetry run pip install git+https://github.com/VeNoMouS/cloudscraper.git@3.0.0
 
-# Run Application
-CMD [ "poetry", "run", "python3", "-m", "bot"]
+# Copy app source code
+COPY . .
+
+# Run app
+CMD ["poetry", "run", "python", "-m", "bot"]

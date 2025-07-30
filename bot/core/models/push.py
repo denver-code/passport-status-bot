@@ -1,8 +1,8 @@
-from beanie import Document, Indexed
+from beanie import Document
 
 
 class PushModel(Document):
-    telgram_id: str
+    telegram_id: str
     secret_id: str
 
     class Settings:

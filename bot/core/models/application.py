@@ -1,6 +1,7 @@
-from beanie import Document, Indexed
+from datetime import datetime
+
+from beanie import Document
 from pydantic import BaseModel
-from datetime import date, datetime
 
 
 class StatusModel(BaseModel):

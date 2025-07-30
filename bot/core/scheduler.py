@@ -1,36 +1,23 @@
-from datetime import datetime
 from bot.core.api import Scraper
-from bot.core.models.application import ApplicationModel, StatusModel
+from bot.core.logger import log_function
+from bot.core.models.application import ApplicationModel
 from bot.core.notificator import notify_subscribers
+from bot.core.utils import process_status_update
 
 
-async def scheduler_job():
-    _applications = await ApplicationModel.find({}).to_list()
-
+@log_function("scheduler_job")
+async def scheduler_job() -> None:
+    applications = await ApplicationModel.find({}).to_list()
     scraper = Scraper()
-    for application in _applications:
-        status = scraper.check(application.session_id, retrive_all=True)
 
-        if not status:
-            continue
+    for application in applications:
+        try:
+            await process_status_update(application, scraper, notify_subscribers)
+        except Exception as e:
+            # Log error but continue processing other applications
+            from bot.core.logger import log_error
 
-        _statuses = []
-        for s in status:
-            _statuses.append(
-                StatusModel(
-                    status=s.get("status"),
-                    date=s.get("date"),
-                )
+            log_error(
+                f"Failed to process status update for session {application.session_id}",
+                exception=e,
             )
-        if len(_statuses) > len(application.statuses):
-            # find new statuses
-            new_statuses = _statuses[len(application.statuses) :]
-            # notify subscribers
-            await notify_subscribers(
-                target_application=application, new_statuses=new_statuses
-            )
-
-        application.statuses = _statuses
-        application.last_update = datetime.now()
-
-        await application.save()

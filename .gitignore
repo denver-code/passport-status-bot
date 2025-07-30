@@ -128,5 +128,8 @@ dmypy.json
 .pyre/
 
 .vscode
+.idea
 
 out.txt
+logs/
+.DS_Store
